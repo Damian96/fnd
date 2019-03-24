@@ -65,6 +65,8 @@ if [[ -z "${CONTENT// }" ]]; then
 	exit 1
 fi
 
+IFS='
+'
 for f in $( eval "$SCMD" ); do
 	awk -v PATT=$CONTENT 'BEGIN{ TM = 0 } { if (match($0, PATT)) { TM += 1; printf("\n%s[line %d]: %s", FILENAME, NR, $0) } } END{ if (TM > 0) { printf("\n\tFound %d, matches in %s\n", TM, FILENAME) } }' "$f"
 done
