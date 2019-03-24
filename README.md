@@ -1,6 +1,6 @@
 # Description
 
-A shell script to search files in a specific directory, recursively or not, by their contents, or by their names
+A shell script to search files in a specific directory, recursively or not, by their contents and / or by their names
 
 # Requirements
 

@@ -5,7 +5,7 @@
 # Created 2019 / 03
 # Repository https://github.com/Damian96/fnd
 # A shell script to search files in a specific directory
-# recursively or not, by their contents, or by their names
+# recursively or not, by their contents and / or by their names
 
 if ! [ -x "$(command -v find)" ]; then
 	printf "%s\n" "Package find is required, but not found"
