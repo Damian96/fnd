@@ -4,7 +4,8 @@ A shell script to search files in a specific directory, recursively or not, by t
 
 # Requirements
 
-
+* GNU's awk package
+* GNU's find package
 
 # Contributors
 
