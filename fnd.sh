@@ -15,9 +15,39 @@ if ! [ -x "$(command -v awk)" ]; then
 	printf "%s\n" "Package awk is required, but not found"
 fi
 
+fndHelp() {
+	printf "\n%s" "fnd Shell Script
+
+USAGE
+	fnd [ [-p|--path]=PATH] [ [-d|--depth]=INT] [-c|--content]=PATTERN] [-n|--name]=PATTERN] ] ]
+
+OPTIONS
+	-p	--path			The specified directory to set as search space (default: ./)
+	-d	--depth			The maximum depth of subdirectories to search. 0 is the first level (default: 0)
+	-c	--content	*	The REGEX pattern to match against each line of each search file (default: .*)
+	-n	--name		*	The REGEX pattern to match against the name of each search file (default: .*)
+	-h	--help			Prints this page
+
+	(*) Required
+
+	For the script to execute, one of the --name or --content parameters need to be passed.
+
+EXIT CODES
+	201	Invalid / not sufficient arguments
+	202	Both --name and --content parameters were empty or invalid
+	0  	Success
+
+Copyright 2019 Damianos Giankakis
+LICENSE MIT
+Repository https://github.com/Damian96/fnd
+A shell script to search files in a specific directory
+and its subdirectories, by their contents and / or by their names"
+}
+
+
 if [[ $# -le 2 ]]; then
-  printf "%s\n" "Usage: fnd [ [-p|--path]=PATH] [-r|--recursive] [-c|--content]=PATTERN] [-n|--name]=PATTERN] ]"
-  exit 1
+  fndHelp
+  exit 201
 fi
 
 for i in "$@"
@@ -26,8 +56,8 @@ case $i in
 	-p=*|--path=*)
 		SEARCH="${i#*=}"
 	;;
-	-r|--recursive)
-		RECURSIVE=1
+	-d=*|--depth=*)
+		DEPTH="${i#*=}"
 	;;
 	-c=*|--content=*)
 		CONTENT="${i#*=}"
@@ -35,34 +65,42 @@ case $i in
 	-n=*|--name=*)
 		NAME="${i#*=}"
 	;;
+	-h=*|--help)
+		fndHelp
+		exit 0
+	;;
 	*)
-  	printf "%s\n" "Usage: fnd [ [-p|--path]=PATH] [-r|--recursive] [-c|--content]=PATTERN] [-n|--name]=PATTERN] ]"
-  	exit 1
+		printf "%s\n" "Invalid argument"
+  	exit 201
 	;;
 esac
 done
 
-if [[ ! -d "$SEARCH" ]]; then
+if [[ -z "${NAME// }" ]]; then
+	SCMD="find ./"
+elif [[ ! -d "$SEARCH" ]]; then
 	printf "%s\n" "Invalid parameter: --path"
-	exit 1
+	exit 201
 else
 	SCMD="find \"$SEARCH\""
 fi
 
-if [[ $RECURSIVE -ne 1 ]]; then
+if [[ -z "${DEPTH// }" ]]; then
+	SCMD="$SCMD -maxdepth 1"
+elif [[ $DEPTH -ge 1 ]]; then
+	SCMD="$SCMD -maxdepth $DEPTH"
+else
 	SCMD="$SCMD -maxdepth 1"
 fi
 
-if [[ -z "${NAME// }" ]]; then
-	printf "%s\n" "Invalid parameter: --name"
-	exit 1
-else
+if [[ ! -z "${NAME// }" ]]; then
 	SCMD="$SCMD -type f -path \"$NAME\""
 fi
 
-if [[ -z "${CONTENT// }" ]]; then
+if [[ -z "${CONTENT// }" && -z "${NAME// }" ]]; then
 	printf "%s\n" "Invalid parameter: --content"
-	exit 1
+	printf "%s\n" "Invalid parameter: --name"
+	exit 202
 fi
 
 IFS='
@@ -71,6 +109,7 @@ for f in $( eval "$SCMD" ); do
 	awk -v PATT=$CONTENT 'BEGIN{ TM = 0 } { if (match($0, PATT)) { TM += 1; printf("\n%s[line %d]: %s", FILENAME, NR, $0) } } END{ if (TM > 0) { printf("\n\tFound %d, matches in %s\n", TM, FILENAME) } }' "$f"
 done
 
+unset fndHelp
 unset SEARCH
 unset RECURSIVE
 unset CONTENT
