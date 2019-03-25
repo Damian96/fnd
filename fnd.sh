@@ -23,7 +23,7 @@ USAGE
 
 OPTIONS
 	-p	--path			The specified directory to set as search space (default: ./)
-	-d	--depth			The maximum depth of subdirectories to search. 0 is the first level (default: 0)
+	-d	--depth			The maximum depth of subdirectories to search. 2 is the first level (default: 2)
 	-c	--content	*	The REGEX pattern to match against each line of each search file (default: .*)
 	-n	--name		*	The REGEX pattern to match against the name of each search file (default: .*)
 	-h	--help			Prints this page
@@ -86,11 +86,11 @@ else
 fi
 
 if [[ -z "${DEPTH// }" ]]; then
-	SCMD="$SCMD -maxdepth 1"
-elif [[ $DEPTH -ge 1 ]]; then
+	SCMD="$SCMD"
+elif [[ $DEPTH -g 2 ]]; then
 	SCMD="$SCMD -maxdepth $DEPTH"
 else
-	SCMD="$SCMD -maxdepth 1"
+	SCMD="$SCMD"
 fi
 
 if [[ ! -z "${NAME// }" ]]; then
