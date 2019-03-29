@@ -15,8 +15,25 @@ if ! [ -x "$(command -v awk)" ]; then
 	printf "%s\n" "Package awk is required, but not found"
 fi
 
+fndUnset() {
+	unset fndHelp
+	unset SEARCH
+	unset RECURSIVE
+	unset CONTENT
+	unset NAME
+	unset SCMD
+	unset PATT
+}
+
+_trapCmd() {
+	trap 'kill -TERM $PID; exit 130;' TERM
+	eval "$1" &
+	PID=$!
+	wait $PID
+}
+
 fndHelp() {
-	printf "\n%s" "fnd Shell Script
+	printf "\n%s\n" "fnd Shell Script
 
 USAGE
 	fnd [ [-p|--path]=PATH] [ [-d|--depth]=INT] [-c|--content]=PATTERN] [-n|--name]=PATTERN] ] ]
@@ -45,8 +62,9 @@ and its subdirectories, by their contents and / or by their names"
 }
 
 
-if [[ $# -le 2 ]]; then
+if [[ $# -le 1 ]]; then
   fndHelp
+  fndUnset
   exit 201
 fi
 
@@ -67,10 +85,12 @@ case $i in
 	;;
 	-h=*|--help)
 		fndHelp
+		fndUnset
 		exit 0
 	;;
 	*)
 		printf "%s\n" "Invalid argument"
+		fndUnset
   	exit 201
 	;;
 esac
@@ -80,6 +100,7 @@ if [[ -z "${NAME// }" ]]; then
 	SCMD="find ./"
 elif [[ ! -d "$SEARCH" ]]; then
 	printf "%s\n" "Invalid parameter: --path"
+	fndUnset
 	exit 201
 else
 	SCMD="find \"$SEARCH\""
@@ -87,33 +108,35 @@ fi
 
 if [[ -z "${DEPTH// }" ]]; then
 	SCMD="$SCMD"
-elif [[ $DEPTH -g 2 ]]; then
+elif [[ $DEPTH -gt 2 ]]; then
 	SCMD="$SCMD -maxdepth $DEPTH"
 else
 	SCMD="$SCMD"
 fi
 
 if [[ ! -z "${NAME// }" ]]; then
-	SCMD="$SCMD -type f -path \"$NAME\""
+	SCMD="$SCMD -type f -name \"$NAME\""
 fi
 
 if [[ -z "${CONTENT// }" && -z "${NAME// }" ]]; then
 	printf "%s\n" "Invalid parameter: --content"
 	printf "%s\n" "Invalid parameter: --name"
+	printf "%s\n" "Error: fnd requires one of the two above parameters to work"
+	fndUnset
 	exit 202
 fi
 
-IFS='
-'
-for f in $( eval "$SCMD" ); do
-	awk -v PATT=$CONTENT 'BEGIN{ TM = 0 } { if (match($0, PATT)) { TM += 1; printf("\n%s[line %d]: %s", FILENAME, NR, $0) } } END{ if (TM > 0) { printf("\n\tFound %d, matches in %s\n", TM, FILENAME) } }' "$f"
-done
+if [[ ! -z "${CONTENT// }" ]]; then
+	IFS='
+	'
+	for f in $( eval "$SCMD" ); do
+		_trapCmd "awk -v PATT=$CONTENT 'BEGIN{ TM = 0 } { if (match(\$0, PATT)) { TM += 1; printf(\"\n%s[line %d]: %s\", FILENAME, NR, \$0) } } END{ if (TM > 0) { printf(\"\n\tFound %d, matches in %s\n\", TM, FILENAME) } }' \"$f\""
+	done
+else
+	for f in $( eval "$SCMD" ); do
+		printf "\n%s\n" "$f"
+	done
+fi
 
-unset fndHelp
-unset SEARCH
-unset RECURSIVE
-unset CONTENT
-unset NAME
-unset SCMD
-unset PATT
+fndUnset
 exit 0
